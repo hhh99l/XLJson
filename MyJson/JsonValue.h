@@ -54,6 +54,8 @@ namespace XLJSON
 
 		Value& operator[](const std::string strValue);
 
+
+		void Swap(Value& val);
 		ValueType GetValueType() const;
 
 		int				AsInt() const;

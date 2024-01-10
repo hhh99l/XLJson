@@ -112,6 +112,11 @@ XLJSON::Value& XLJSON::Value::operator[](const std::string strValue)
 		XLJSON::Value val(ValueNull);
 		return val;
 	}*/
+
+	if (m_eType == ValueNull)
+	{
+		m_eType = ValueObject;
+	}
 	NodeKey node(strValue);
 	return m_mapNode[node];
 }
@@ -128,6 +133,13 @@ int XLJSON::Value::AsInt()const
 
 	JSON_THROW_ERROR("value type is not expectation");
 	return 0;
+}
+
+void XLJSON::Value::Swap(Value& val)
+{
+	Value valTemp(val);
+	val = *this;
+	*this = val;
 }
 
 unsigned int XLJSON::Value::AsUint()const

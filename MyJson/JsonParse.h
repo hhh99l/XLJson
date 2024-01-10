@@ -2,13 +2,11 @@
 #include "JsonValue.h"
 namespace XLJSON
 {
-	enum TokenType
+	enum NumberType
 	{
-		Token_ObjectBegin,
-		Token_ObjectEnd,
-		Token_ArrayBeigin,
-		Token_ArrayEnd,
-
+		Number_Double,
+		Number_UInt,
+		Number_Int
 	};
 
 	class Parse
@@ -20,14 +18,19 @@ namespace XLJSON
 	private:
 		bool ParseVaule(XLJSON::Value &valOut);
 		bool ParseObject(XLJSON::Value& valOut);
-
+		bool ParseBoolAndNull(XLJSON::Value& valOut);
 		bool ParseString(std::string& valOut);
 		bool ParseNumber(XLJSON::Value& valOut);
 		void SkipWhiteSpace();
+		void UpdateErrorMsg(const std::string& strMsg);
 
+		inline char GetCurChar();
+		inline char GetNextChar();
+		inline bool ModeStrPtr(unsigned int nIndex = 1);
 		std::string m_strErrorMsg;
 		const char* m_pBegin;
 		const char* m_pEnd;
+		size_t m_nLength;
 
 	};
 }
