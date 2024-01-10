@@ -54,7 +54,7 @@ bool XLJSON::Parse::ParseVaule(XLJSON::Value& valOut)
 	}
 
 	case '{':
-		ParseObject(value);
+		bok = ParseObject(value);
 
 		break;
 
