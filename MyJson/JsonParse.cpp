@@ -94,9 +94,10 @@ bool XLJSON::Parse::ParseObject(XLJSON::Value& valOut)
 		SkipWhiteSpace();
 		// 匹配完结束了
 		
-
-		if (*m_pBegin != ',' && *m_pBegin != '}')
+		char ch = GetCurChar();
+		if (ch != ',' && ch != '}')
 		{
+			UpdateErrorMsg("json对象节点后无\", }\" 令牌");
 			bOk = false;
 			break;
 		}
@@ -139,7 +140,7 @@ bool XLJSON::Parse::ParseArray(XLJSON::Value& valOut)
 			return true;
 		}
 
-		if (!ch == ',')
+		if (ch != ',')
 			break;
 
 	} while (MoveStrPtr());
@@ -223,6 +224,7 @@ bool XLJSON::Parse::ParseNumber(XLJSON::Value& valOut)
 	NumberType eNumType = Number_UInt;
 	std::string strNum;
 	char ch = GetCurChar();
+	int iScale = 0;
 	// 读取符号
 	if (ch == '-')
 	{
@@ -251,7 +253,8 @@ bool XLJSON::Parse::ParseNumber(XLJSON::Value& valOut)
 	{
 		eNumType = Number_Double;
 		strNum += ch;
-		char ch = GetNextChar();
+		MoveStrPtr();
+		ch = GetCurChar();
 		if (ch < '0' || ch > '9')
 		{
 			UpdateErrorMsg("小数点后面莫得数字");
@@ -269,15 +272,14 @@ bool XLJSON::Parse::ParseNumber(XLJSON::Value& valOut)
 	// Todo 读取指数部分
 	if (ch == 'e' || ch == 'E')
 	{
-		strNum += ch;
 		MoveStrPtr();
 
+		std::string strExponent;
 		ch = GetCurChar();
 		if (ch == '+' || ch == '-') 
 		{
-			strNum += ch;
+			strExponent += ch;
 			MoveStrPtr();
-
 			ch = GetCurChar();
 			if (ch < '0' || ch > '9')
 			{
@@ -288,10 +290,22 @@ bool XLJSON::Parse::ParseNumber(XLJSON::Value& valOut)
 		
 		do
 		{
-			strNum += ch;
+			strExponent += ch;
 			MoveStrPtr();
 			ch = GetCurChar();
 		} while (ch >= '0' && ch <= '9');
+
+		try {
+			// 指数小于零，这时就视为浮点数
+			iScale = std::stoi(strExponent.c_str());
+			if (iScale < 0)
+				eNumType = Number_Double;
+
+		}
+		catch (const std::exception&) {
+			return false;
+		}
+
 	}
 	
 	// 转换出现异常后我们直接视为失败吧
@@ -302,6 +316,8 @@ bool XLJSON::Parse::ParseNumber(XLJSON::Value& valOut)
 		try
 		{
 			double dNum = std::stod(strNum.c_str());
+
+			dNum = dNum * pow(10, iScale);
 			valOut = XLJSON::Value(dNum);
 		}
 		catch (const std::exception&)
@@ -315,6 +331,7 @@ bool XLJSON::Parse::ParseNumber(XLJSON::Value& valOut)
 	{
 		try {
 			unsigned int nNum = std::stoul(strNum.c_str());
+			nNum = nNum * pow(10, iScale);
 			valOut = XLJSON::Value(nNum);
 		}
 		catch (const std::exception&){
@@ -327,6 +344,7 @@ bool XLJSON::Parse::ParseNumber(XLJSON::Value& valOut)
 	{
 		try {
 			int nNum = std::stoi(strNum.c_str());
+			nNum = nNum * pow(10, iScale);
 			valOut = XLJSON::Value(nNum);
 		}
 		catch (const std::exception&) {
