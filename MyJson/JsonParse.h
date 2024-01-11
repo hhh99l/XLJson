@@ -18,19 +18,21 @@ namespace XLJSON
 	private:
 		bool ParseVaule(XLJSON::Value &valOut);
 		bool ParseObject(XLJSON::Value& valOut);
+		bool ParseArray(XLJSON::Value& valOut);
 		bool ParseBoolAndNull(XLJSON::Value& valOut);
-		bool ParseString(std::string& valOut);
+		bool ParseString(XLJSON::Value& valOut);
+		bool ParseString(std::string& strOut);
 		bool ParseNumber(XLJSON::Value& valOut);
-		void SkipWhiteSpace();
+
 		void UpdateErrorMsg(const std::string& strMsg);
+		void SkipWhiteSpace();
 
 		inline char GetCurChar();
 		inline char GetNextChar();
-		inline bool ModeStrPtr(unsigned int nIndex = 1);
+		inline bool MoveStrPtr(unsigned int nIndex = 1);
 		std::string m_strErrorMsg;
 		const char* m_pBegin;
 		const char* m_pEnd;
-		size_t m_nLength;
 
 	};
 }

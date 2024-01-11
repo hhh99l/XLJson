@@ -3,7 +3,6 @@
 bool XLJSON::Parse::ParseJsonStr(const std::string& strInput, XLJSON::Value& value)
 {
 	// 存一下字符串信息
-	m_nLength = strInput.length();
 	m_pBegin = strInput.c_str();
 	m_pEnd = m_pBegin + strInput.length();
 	
@@ -12,7 +11,7 @@ bool XLJSON::Parse::ParseJsonStr(const std::string& strInput, XLJSON::Value& val
 
 std::string XLJSON::Parse::GetLastErrorMsg()
 {
-	return std::string();
+	return m_strErrorMsg;
 }
 
 bool XLJSON::Parse::ParseVaule(XLJSON::Value& valOut)
@@ -41,31 +40,21 @@ bool XLJSON::Parse::ParseVaule(XLJSON::Value& valOut)
 		bok = ParseBoolAndNull(value);
 		break;
 	case '\"':
-	{
-		std::string str;
-		bok = ParseString(str);
-		if (!bok)
-		{
-			m_strErrorMsg = "ParseString Error";
-			break;
-		}
-		value = XLJSON::Value(str);
+		bok = ParseString(value);
 		break;
-	}
-
 	case '{':
 		bok = ParseObject(value);
-
 		break;
-
 	case '[':
+		bok = ParseArray(value);
 		break;
-	case ']':
-		break;
+	default:
+		UpdateErrorMsg("令牌匹配错误");
 	}
 	
-	
-	valOut = value;
+	if(bok)
+		valOut = value;
+
 	return bok;
 }
 
@@ -121,6 +110,44 @@ bool XLJSON::Parse::ParseObject(XLJSON::Value& valOut)
 	return bOk;
 }
 
+bool XLJSON::Parse::ParseArray(XLJSON::Value& valOut)
+{
+	if (!MoveStrPtr())
+		return false;
+
+	SkipWhiteSpace();
+	XLJSON::Value valTemp(ValueArray);
+	if (GetCurChar() == ']')
+	{
+		valOut = valTemp;
+		return true;
+	}
+
+	do
+	{
+		XLJSON::Value valueNode(ValueNull);
+		if (!ParseVaule(valueNode))
+			break;
+
+		valTemp.Append(valueNode);
+
+		SkipWhiteSpace();
+		char ch = GetCurChar();
+		if (ch == ']')
+		{
+			valOut = valTemp;
+			return true;
+		}
+
+		if (!ch == ',')
+			break;
+
+	} while (MoveStrPtr());
+
+	UpdateErrorMsg("ParseArray Error");
+	return false;
+}
+
 bool XLJSON::Parse::ParseBoolAndNull(XLJSON::Value& valOut)
 {
 	int nOffset = 0;
@@ -156,24 +183,38 @@ sucess:
 	return true;
 }
 
+bool XLJSON::Parse::ParseString(XLJSON::Value& valOut)
+{
+	std::string str;
+	bool bok = ParseString(str);
+	
+	if (bok)
+		valOut = XLJSON::Value(str);
+
+	return bok;
+}
+
 bool XLJSON::Parse::ParseString(std::string& strOut)
 {
 	if (*m_pBegin != '\"')
 		return false;
 	
-	const char* pStr = m_pBegin + 1;
-	while (pStr <= m_pEnd)
+	std::string strTemp;
+	char ch = 0;
+	while (MoveStrPtr())
 	{
-		if (*pStr == '\"')
+		ch = GetCurChar();
+		if (ch == '\"')
 		{
-			m_pBegin = pStr +1;
+			strOut = strTemp;
+			MoveStrPtr();
 			return true;
 		}
-		strOut += *pStr;
-		pStr++;
+		strTemp += ch;
 	}
 
 	strOut = "";
+	UpdateErrorMsg("没有匹配到结束的引号");
 	return false;
 }
 
@@ -187,7 +228,7 @@ bool XLJSON::Parse::ParseNumber(XLJSON::Value& valOut)
 	{
 		eNumType = Number_Int;
 		strNum += ch;
-		ModeStrPtr();
+		MoveStrPtr();
 	}
 
 	// 读取整数部分数字
@@ -201,7 +242,7 @@ bool XLJSON::Parse::ParseNumber(XLJSON::Value& valOut)
 	do
 	{
 		strNum += ch;
-		ModeStrPtr();
+		MoveStrPtr();
 		ch = GetCurChar();
 	} while (ch >= '0' && ch <= '9');
 	
@@ -220,32 +261,78 @@ bool XLJSON::Parse::ParseNumber(XLJSON::Value& valOut)
 		do
 		{
 			strNum += ch;
-			ModeStrPtr();
+			MoveStrPtr();
 			ch = GetCurChar();
 		} while (ch >= '0' && ch <= '9');
 	}
 
 	// Todo 读取指数部分
+	if (ch == 'e' || ch == 'E')
+	{
+		strNum += ch;
+		MoveStrPtr();
+
+		ch = GetCurChar();
+		if (ch == '+' || ch == '-') 
+		{
+			strNum += ch;
+			MoveStrPtr();
+
+			ch = GetCurChar();
+			if (ch < '0' || ch > '9')
+			{
+				UpdateErrorMsg("E后面莫得数字");
+				return false;
+			}
+		}
+		
+		do
+		{
+			strNum += ch;
+			MoveStrPtr();
+			ch = GetCurChar();
+		} while (ch >= '0' && ch <= '9');
+	}
 	
-	
+	// 转换出现异常后我们直接视为失败吧
 	switch (eNumType)
 	{
 	case XLJSON::Number_Double:
 	{
-		double dNum = std::stod(strNum.c_str());
-		valOut = XLJSON::Value(dNum);
+		try
+		{
+			double dNum = std::stod(strNum.c_str());
+			valOut = XLJSON::Value(dNum);
+		}
+		catch (const std::exception&)
+		{
+			return false;
+		}
+		
 		break;
 	}
 	case XLJSON::Number_UInt:
 	{
-		unsigned int nNum = std::stoul(strNum.c_str());
-		valOut = XLJSON::Value(nNum);
+		try {
+			unsigned int nNum = std::stoul(strNum.c_str());
+			valOut = XLJSON::Value(nNum);
+		}
+		catch (const std::exception&){
+			return false;
+		}
+		
 		break;
 	}
 	case XLJSON::Number_Int:
 	{
-		int nNum = std::stoi(strNum.c_str());
-		valOut = XLJSON::Value(nNum); 
+		try {
+			int nNum = std::stoi(strNum.c_str());
+			valOut = XLJSON::Value(nNum);
+		}
+		catch (const std::exception&) {
+			return false;
+		}
+		
 		break;
 	}
 	default:
@@ -288,7 +375,7 @@ inline char XLJSON::Parse::GetNextChar()
 	return *(m_pBegin + 1);
 }
 
-inline bool XLJSON::Parse::ModeStrPtr(unsigned int nIndex)
+inline bool XLJSON::Parse::MoveStrPtr(unsigned int nIndex)
 {
 	if (m_pBegin + nIndex <= m_pEnd)
 	{

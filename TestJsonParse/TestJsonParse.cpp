@@ -58,8 +58,10 @@ namespace TestJsonParse
 
 		TEST_METHOD(测试解析整数类型值)
 		{
-			std::string str = R"({"i1":-1234, "i2":-123456, "i3":-1234523,
-								"u1":1234, "u2":123456, "u3":1234523
+			std::string str = R"({"i1":-1234, "i2":-1234156, "i3":-1234523,
+								"u1":123123123123131231234, "u2":123456, "u3":1234523
+								
+								
 			})";
 			XLJSON::Value val(XLJSON::ValueObject);
 			XLJSON::Parse par;
@@ -75,6 +77,25 @@ namespace TestJsonParse
 			Assert::IsTrue(val["u1"].AsUint() == 1234, L"u1值不符合预期");
 			Assert::IsTrue(val["u2"].AsUint() == 123456, L"u2值不符合预期");
 			Assert::IsTrue(val["u3"].AsUint() == 1234523, L"u3值不符合预期");
+		}
+
+		TEST_METHOD(测试解析数组类型值)
+		{
+			std::string str = R"([123,1231,"123",123])";
+			XLJSON::Value val(XLJSON::ValueObject);
+			XLJSON::Parse par;
+			if (!par.ParseJsonStr(str, val))
+			{
+				Assert::Fail(L"解析JSON字符串失败");
+			}
+
+			str = val.ToString();
+			if(str.empty())
+			{
+				Assert::Fail(L"解析JSON字符串失败");
+			}
+
+			
 		}
 	};
 
