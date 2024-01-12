@@ -5,8 +5,17 @@ bool XLJSON::Parse::ParseJsonStr(const std::string& strInput, XLJSON::Value& val
 	// 存一下字符串信息
 	m_pBegin = strInput.c_str();
 	m_pEnd = m_pBegin + strInput.length();
-	
-	return ParseVaule(value);;
+
+	XLJSON::Value valTemp;
+	bool bRet = ParseVaule(valTemp);
+	if (bRet)
+	{
+		SkipWhiteSpace();
+		if (GetCurChar() != 0)
+			return false;
+	}
+	value = valTemp;
+	return true;;
 }
 
 std::string XLJSON::Parse::GetLastErrorMsg()
@@ -61,7 +70,15 @@ bool XLJSON::Parse::ParseVaule(XLJSON::Value& valOut)
 bool XLJSON::Parse::ParseObject(XLJSON::Value& valOut)
 {
 	bool bOk = true;
-	m_pBegin++;
+	MoveStrPtr();
+	SkipWhiteSpace();
+	if (GetCurChar() == '}')
+	{
+		valOut = XLJSON::Value(ValueObject);
+		MoveStrPtr();
+		return true;
+	}
+
 	do
 	{
 		SkipWhiteSpace();
@@ -103,11 +120,16 @@ bool XLJSON::Parse::ParseObject(XLJSON::Value& valOut)
 		}
 		valOut[strName] = value;
 		if (*m_pBegin == '}')
+		{
+			MoveStrPtr();
 			break;
+		}
+		
 
 		m_pBegin++;
 	} while (1);
 
+	MoveStrPtr();
 	return bOk;
 }
 
@@ -121,6 +143,7 @@ bool XLJSON::Parse::ParseArray(XLJSON::Value& valOut)
 	if (GetCurChar() == ']')
 	{
 		valOut = valTemp;
+		MoveStrPtr();
 		return true;
 	}
 
@@ -137,6 +160,7 @@ bool XLJSON::Parse::ParseArray(XLJSON::Value& valOut)
 		if (ch == ']')
 		{
 			valOut = valTemp;
+			MoveStrPtr();
 			return true;
 		}
 
@@ -179,7 +203,7 @@ bool XLJSON::Parse::ParseBoolAndNull(XLJSON::Value& valOut)
 	return false;
 
 sucess:
-	m_pBegin = m_pBegin + nOffset;
+	MoveStrPtr(nOffset);
 
 	return true;
 }

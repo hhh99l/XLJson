@@ -4,12 +4,12 @@
 #include <stdexcept>
 #include <cassert>
 #include <map>
+#include <initializer_list>
 
 #define JSON_THROW_ERROR(message) throw std::runtime_error( message );
 
 namespace XLJSON
 {
-
 	enum ValueType
 	{
 		ValueNull,
@@ -31,6 +31,7 @@ namespace XLJSON
 
 		bool operator=(const NodeKey& other);
 		bool operator==(const NodeKey& other) const;
+		bool operator!=(const NodeKey& other) const;
 		bool operator<(const NodeKey& other) const;
 
 		std::string GetString() const;
@@ -42,7 +43,7 @@ namespace XLJSON
 	class Value
 	{
 	public:
-		Value() {};
+		Value();
 		Value(ValueType value);
 		Value(int value);
 		Value(unsigned int value);
@@ -52,8 +53,26 @@ namespace XLJSON
 		Value(std::string value);
 		Value(const Value& value);
 
-		Value& operator[](const std::string strValue);
 
+		template<typename T>
+		Value(const std::initializer_list<T> list)
+		{
+			m_eType = ValueArray;
+			m_iValue = 0;
+			m_uValue = 0;
+			m_dValue = 0.0;
+			m_bValue = false;
+
+			for (auto item : list)
+			{
+				Value temp(item);
+				Append(temp);
+			}
+		}
+
+		bool operator== (const Value& strValue);
+		Value& operator[](const std::string strValue);
+		Value& operator[](const char* strValue);
 
 		void Swap(Value& val);
 		ValueType GetValueType() const;
@@ -67,11 +86,13 @@ namespace XLJSON
 
 		void Append(const Value& value);		// 用于Array追加元素
 		bool IsMember(std::string value);
+		bool IsSamed(const Value& value1, const Value& value2);
 
 		std::map<NodeKey, Value> GetMember()const;
 	private:
-		ValueType					m_eType;
+		
 
+		ValueType					m_eType;
 		int							m_iValue;
 		unsigned int				m_uValue;
 		double						m_dValue;

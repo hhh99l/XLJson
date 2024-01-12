@@ -1,11 +1,22 @@
 #include "JsonValue.h"
 #include "JsonWriter.h"
+
+static XLJSON::Value g_VauleNull(XLJSON::ValueNull);
+
 bool XLJSON::NodeKey::operator==(const NodeKey& other)const
 {
 	if (!m_strValue.empty())
 		return strcmp(m_strValue.c_str(), other.m_strValue.c_str()) == 0;
 
 	return m_nValue == other.m_nValue;
+}
+
+bool XLJSON::NodeKey::operator!=(const NodeKey& other) const
+{
+	if (!m_strValue.empty())
+		return strcmp(m_strValue.c_str(), other.m_strValue.c_str()) != 0;
+
+	return m_nValue != other.m_nValue;
 }
 
 bool XLJSON::NodeKey::operator=(const NodeKey& other)
@@ -26,6 +37,15 @@ bool XLJSON::NodeKey::operator<(const NodeKey& other) const
 std::string XLJSON::NodeKey::GetString() const
 {
 	return m_strValue;
+}
+
+XLJSON::Value::Value()
+{
+	m_eType = ValueNull;
+	m_iValue = 0;
+	m_uValue = 0;
+	m_dValue = 0.0;
+	m_bValue = false;
 }
 
 XLJSON::Value::Value(ValueType value)
@@ -105,21 +125,56 @@ XLJSON::Value::Value(const Value& value)
 	m_mapNode = value.m_mapNode;
 }
 
+//template<typename T>
+//XLJSON::Value::Value(std::initializer_list<T> list)
+//{
+//	m_eType = ValueArray;
+//	m_iValue = 0;
+//	m_uValue = 0;
+//	m_dValue = 0.0;
+//	m_bValue = false;
+//
+//	for (auto item : list)
+//	{
+//		Value temp(item);
+//		Append(temp);
+//	}
+//}
+
+bool XLJSON::Value::operator==(const Value& strValue)
+{
+	return IsSamed(*this, strValue);
+}
+
 XLJSON::Value& XLJSON::Value::operator[](const std::string strValue)
 {
-	/*if (m_eType != ValueObject)
-	{
-		XLJSON::Value val(ValueNull);
-		return val;
-	}*/
 
 	if (m_eType == ValueNull)
 	{
 		m_eType = ValueObject;
 	}
 	NodeKey node(strValue);
+	if (m_mapNode.find(node) == m_mapNode.end())
+		return g_VauleNull;
+
 	return m_mapNode[node];
 }
+
+XLJSON::Value& XLJSON::Value::operator[](const char* strValue)
+{
+	if (m_eType == ValueNull)
+	{
+		m_eType = ValueObject;
+	}
+
+	NodeKey node(strValue);
+	if (m_mapNode.find(node) == m_mapNode.end())
+		return g_VauleNull;
+
+	return m_mapNode[node];
+}
+
+
 
 XLJSON::ValueType XLJSON::Value::GetValueType()const
 {
@@ -203,6 +258,65 @@ bool XLJSON::Value::IsMember(std::string value)
 
 	NodeKey node(value);
 	return m_mapNode.find(node) == m_mapNode.end();
+}
+
+bool XLJSON::Value::IsSamed(const Value& value1, const Value& value2)
+{
+	// 类型不一致那就肯定不等啦
+	if (value1.m_eType != value2.m_eType)
+		return false;
+
+	switch (m_eType)
+	{
+	case XLJSON::ValueNull:
+		return true;
+	case XLJSON::ValueInt:
+		return value1.m_iValue == value2.m_iValue;
+	case XLJSON::ValueUInt:
+		return value1.m_uValue == value2.m_iValue;
+	case XLJSON::ValueReal:
+		return value1.m_dValue == value2.m_dValue;
+	case XLJSON::ValueBool:
+		return value1.m_bValue == value2.m_bValue;
+	case XLJSON::ValueString:
+		return value1.m_strValue.compare(value2.m_strValue.c_str()) == 0;
+	case XLJSON::ValueArray:
+	{
+		if (value1.m_mapNode.size() != value2.m_mapNode.size())
+			return false;
+
+		auto item1_begin = value1.m_mapNode.begin();
+		auto item2_begin = value2.m_mapNode.begin();
+		for (; item1_begin != value1.m_mapNode.end() && item2_begin != value2.m_mapNode.end(); item1_begin++, item2_begin++)
+		{
+			if (!IsSamed(item1_begin->second, item1_begin->second))
+				return false;
+		}
+
+		return true;
+	}
+	case XLJSON::ValueObject:
+	{
+		if (value1.m_mapNode.size() != value2.m_mapNode.size())
+			return false;
+
+		auto item1_begin = value1.m_mapNode.begin();
+		auto item2_begin = value2.m_mapNode.begin();
+		for (; item1_begin != value1.m_mapNode.end() && item2_begin != value2.m_mapNode.end(); item1_begin++, item2_begin++)
+		{
+			if (item1_begin->first != item2_begin->first)
+				return false;
+
+			if (!IsSamed(item1_begin->second, item1_begin->second))
+				return false;
+		}
+
+		return true;
+	}
+	default:
+		break;
+	}
+	return false;
 }
 
 std::string XLJSON::Value::ToString() const
