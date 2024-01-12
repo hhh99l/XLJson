@@ -125,6 +125,20 @@ XLJSON::Value::Value(const Value& value)
 	m_mapNode = value.m_mapNode;
 }
 
+XLJSON::Value::Value(const std::initializer_list<Value> list)
+{
+	m_eType = ValueArray;
+	m_iValue = 0;
+	m_uValue = 0;
+	m_dValue = 0.0;
+	m_bValue = false;
+
+	for (auto item : list)
+	{
+		Append(item);
+	}
+}
+
 //template<typename T>
 //XLJSON::Value::Value(std::initializer_list<T> list)
 //{
@@ -273,7 +287,7 @@ bool XLJSON::Value::IsSamed(const Value& value1, const Value& value2)
 	case XLJSON::ValueInt:
 		return value1.m_iValue == value2.m_iValue;
 	case XLJSON::ValueUInt:
-		return value1.m_uValue == value2.m_iValue;
+		return value1.m_uValue == value2.m_uValue;
 	case XLJSON::ValueReal:
 		return value1.m_dValue == value2.m_dValue;
 	case XLJSON::ValueBool:
@@ -289,7 +303,7 @@ bool XLJSON::Value::IsSamed(const Value& value1, const Value& value2)
 		auto item2_begin = value2.m_mapNode.begin();
 		for (; item1_begin != value1.m_mapNode.end() && item2_begin != value2.m_mapNode.end(); item1_begin++, item2_begin++)
 		{
-			if (!IsSamed(item1_begin->second, item1_begin->second))
+			if (!IsSamed(item1_begin->second, item2_begin->second))
 				return false;
 		}
 

@@ -296,13 +296,14 @@ bool XLJSON::Parse::ParseNumber(XLJSON::Value& valOut)
 	// Todo 读取指数部分
 	if (ch == 'e' || ch == 'E')
 	{
+		eNumType = Number_Double;
+		strNum += ch;
 		MoveStrPtr();
 
-		std::string strExponent;
 		ch = GetCurChar();
 		if (ch == '+' || ch == '-') 
 		{
-			strExponent += ch;
+			strNum += ch;
 			MoveStrPtr();
 			ch = GetCurChar();
 			if (ch < '0' || ch > '9')
@@ -314,21 +315,10 @@ bool XLJSON::Parse::ParseNumber(XLJSON::Value& valOut)
 		
 		do
 		{
-			strExponent += ch;
+			strNum += ch;
 			MoveStrPtr();
 			ch = GetCurChar();
 		} while (ch >= '0' && ch <= '9');
-
-		try {
-			// 指数小于零，这时就视为浮点数
-			iScale = std::stoi(strExponent.c_str());
-			if (iScale < 0)
-				eNumType = Number_Double;
-
-		}
-		catch (const std::exception&) {
-			return false;
-		}
 
 	}
 	
@@ -355,7 +345,6 @@ bool XLJSON::Parse::ParseNumber(XLJSON::Value& valOut)
 	{
 		try {
 			unsigned int nNum = std::stoul(strNum.c_str());
-			nNum = nNum * pow(10, iScale);
 			valOut = XLJSON::Value(nNum);
 		}
 		catch (const std::exception&){
@@ -368,7 +357,6 @@ bool XLJSON::Parse::ParseNumber(XLJSON::Value& valOut)
 	{
 		try {
 			int nNum = std::stoi(strNum.c_str());
-			nNum = nNum * pow(10, iScale);
 			valOut = XLJSON::Value(nNum);
 		}
 		catch (const std::exception&) {

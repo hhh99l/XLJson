@@ -53,22 +53,8 @@ namespace XLJSON
 		Value(std::string value);
 		Value(const Value& value);
 
-
-		template<typename T>
-		Value(const std::initializer_list<T> list)
-		{
-			m_eType = ValueArray;
-			m_iValue = 0;
-			m_uValue = 0;
-			m_dValue = 0.0;
-			m_bValue = false;
-
-			for (auto item : list)
-			{
-				Value temp(item);
-				Append(temp);
-			}
-		}
+		Value(const std::initializer_list<Value> list);
+		
 
 		bool operator== (const Value& strValue);
 		Value& operator[](const std::string strValue);
